@@ -101,11 +101,11 @@ Docker <br/> Orchestration <br/> Workshop
 
 ## Logistics
 
-<!--
 - Hello! We're `jerome at docker dot com` and `aj at soulshake dot net`
--->
 
+<!--
 - Hello! I'm `jerome at docker dot com`
+-->
 
 <!--
 Reminder, when updating the agenda: when people are told to show
@@ -113,25 +113,27 @@ up at 9am, they usually trickle in until 9:30am (except for paid
 training sessions). If you're not sure that people will be there
 on time, it's a good idea to have a breakfast with the attendees
 at e.g. 9am, and start at 9:30.
+-->
 
 - Agenda:
 
 .small[
-- 08:00-09:00 hello and breakfast
-- 09:00:10:25 part 1
-- 10:25-10:35 coffee break
-- 10:35-12:00 part 2
-- 12:00-13:00 lunch break
-- 13:00-14:25 part 3
-- 14:25-14:35 coffee break
-- 14:35-16:00 part 4
+- 09:00-09:15 hello
+- 09:15-10:45 part 1
+- 10:45-11:00 coffee break
+- 11:00-12:30 part 2
+- 12:30-13:30 lunch break
+- 13:30-15:00 part 3
+- 15:00-15:15 coffee break
+- 15:15-16:45 part 4
+- 16:45-17:30 Q&A
 ]
 
--->
-
+<!--
 - The tutorial will run from 1pm to 5pm
 
 - There will be a break at 2:45pm (stop me if I don't!)
+-->
 
 - All the content is publicly available (slides, code samples, scripts)
 
@@ -158,25 +160,20 @@ grep '^# ' index.html | grep -v '<br' | tr '#' '-'
 - Our sample application
 - Running the application
 - Identifying bottlenecks
+- Introducing SwarmKit
 
 ---
 
-## Chapter 2: Scaling out
+## Chapter 2: scaling out our app on Swarm
 
-- SwarmKit
 - Creating our first Swarm
 - Running our first Swarm service
-
----
-
-## Chapter 3: our app on Swarm
-
 - Deploying a local registry
 - Overlay networks
 
 ---
 
-## Chapter 4: operating the Swarm
+## Chapter 3: operating the Swarm
 
 - Breaking into an overlay network
 - Rolling updates
@@ -184,6 +181,22 @@ grep '^# ' index.html | grep -v '<br' | tr '#' '-'
 - Setting up ELK to store container logs
 
 ---
+
+## Chapter 4: deeper in Swarm
+
+- Dealing with stateful services
+- Scripting image building and pushing
+- Docker Application Bundles
+- Controlling Docker from a container
+- Node management
+
+---
+
+## Chapter 5: metrics
+
+- Setting up Snap to collect and publish metric data
+
+--
 
 # Pre-requirements
 
@@ -197,20 +210,13 @@ grep '^# ' index.html | grep -v '<br' | tr '#' '-'
 
 - Some Docker knowledge
 
-  (If you're here, you definitely qualify ☺)
-
-<!--
   (but that's OK if you're not a Docker expert!)
--->
-
 
 ---
 
 ## Nice-to-haves
 
 - [GitHub](https://github.com/join) account
-  <br/>(if you want to fork the repo)
-
   <br/>(if you want to fork the repo; also used to join Gitter)
 
 - [Gitter](https://gitter.im/) account
@@ -296,7 +302,8 @@ wait
 
 - When we will use the other nodes, we will do it mostly through the Docker API
 
-- We will use SSH only for the initial setup and a few "out of band" operations (checking internal logs, debugging...)
+- We will use SSH only for the initial setup and a few "out of band" operations
+  <br/>(checking internal logs, debugging...)
 
 ---
 
@@ -332,7 +339,7 @@ You are welcome to use the method that you feel the most comfortable with.
 
 ## Brand new versions!
 
-- Engine 1.12
+- Engine 1.12.1
 - Compose 1.8
 
 .exercise[
@@ -414,7 +421,7 @@ class: pic
 
 ![DockerCoins logo](dockercoins.png)
 
-(DockerCoins 2016 logo courtesy of @XtlCnslt and @ndeloof. Thanks!)
+(DockerCoins 2016 logo courtesy of [@XtlCnslt](https://twitter.com/xtlcnslt) and [@ndeloof](https://twitter.com/ndeloof). Thanks!)
 
 ---
 
@@ -797,6 +804,28 @@ class: title
 
 ---
 
+## Where is the key/value store?
+
+- All other orchestration systems use a key/value store
+
+  (k8s→etcd, nomad→consul, mesos→zookeeper, etc.)
+
+- SwarmKit stores information directly in Raft
+
+- Analogy courtesy of [@aluzzardi](https://twitter.com/aluzzardi):
+
+  *It's like B-Trees and RDBMS. They are different layers, often
+  associated. But you don't need to bring up a full SQL server when
+  all you need is to index some data.*
+
+- As a result, the orchestrator has direct access to the data
+
+  (the main copy of the data is stored in the orchestrator's memory)
+
+- Simpler, easier to deploy and operate; also faster
+
+---
+
 ## SwarmKit concepts (1/2)
 
 - A *cluster* will be at least one *node* (preferably more)
@@ -904,10 +933,10 @@ You can refer to the [NOMENCLATURE](https://github.com/docker/swarmkit/blob/mast
   Swarm initialized: current node (8jud...) is now a manager.
   ```
 
-- Docker also generated two security tokens (like passphrases or
-  passwords) for our cluster, and shows us the commands to use
-  on other nodes to add them to the cluster using those security
-  tokens:
+- Docker generated two security tokens (like passphrases or passwords) for our cluster
+
+- The CLI shows us the command to use on other nodes to add them to the cluster using the "worker"
+  security token:
 
   ```
     To add a worker to this swarm, run the following command:
@@ -1290,6 +1319,10 @@ Go back to `node1` afterwards.
 
 ---
 
+![diagram showing what happens during docker service create, courtesy of @aluzzardi](docker-service-create.svg)
+
+---
+
 ## Test our service
 
 - We mapped port 9200 on the nodes, to port 9200 in the containers
@@ -1640,11 +1673,11 @@ Moreover, it would significantly alter the code path for `docker run`, even in c
 
 ## Run the application
 
-- First, start the redis service; that one is using a Docker Hub image
+- First, create the `redis` service; that one is using a Docker Hub image
 
 .exercise[
 
-- Create the redis service:
+- Create the `redis` service:
   ```bash
   docker service create --network dockercoins --name redis redis
   ```
@@ -1698,19 +1731,38 @@ Moreover, it would significantly alter the code path for `docker run`, even in c
 
 - We need to connect to the `webui` service, but it is not publishing any port
 
+- Let's re-create the `webui` service, but publish its port 80 this time
+
+.exercise[
+
+- Remove the `webui` service:
+  ```bash
+  docker service rm webui
+  ```
+
+- Re-create it:
+  ```bash
+    docker service create --network dockercoins --name webui \
+           -p 8000:80 $DOCKER_REGISTRY/dockercoins_webui:$TAG
+  ```
+
+]
+
+<!--
 - Let's reconfigure it to publish a port
 
 .exercise[
 
 - Update `webui` so that we can connect to it from outside:
   ```bash
-  docker service update webui --publish-add 8000:5000
+  docker service update webui --publish-add 8000:80
   ```
 
 ]
 
 Note: to "de-publish" a port, you would have to specify the container port.
-</br>(i.e. in that case, `--publish-rm 5000`)
+</br>(i.e. in that case, `--publish-rm 80`)
+-->
 
 ---
 
@@ -1780,6 +1832,8 @@ You should see the performance peaking at 10 hashes/s (like before).
 - Look at the result in the web UI
 
 ]
+
+Note: if the hash rate goes to zero and doesn't climb back up, try to `rm` and `create` again.
 
 ---
 
@@ -1933,7 +1987,10 @@ It is a virtual IP address (VIP) for the `rng` service.
 
 ]
 
-It doesn't respond to ping at this point. (This might change in the future.)
+It *should* ping. (But this might change in the future.)
+
+Current behavior for VIPs is to ping when there is a backend available on the same machine.
+(Again: this might change in the future.)
 
 ---
 
@@ -2150,7 +2207,7 @@ WHY?!?
 
 - Check that they're running:
   ```bash
-  docker service tasks worker
+  docker service ps worker
   ```
 
 ]
@@ -2202,16 +2259,17 @@ Note how the build and push were fast (because caching).
 
 - Look at our service status:
   ```bash
-  watch -n1 "docker service tasks worker -a | grep -v Shutdown.*Shutdown"
+  watch -n1 "docker service ps worker | grep -v Shutdown.*Shutdown"
   ```
 
 ]
 
-- `-a` gives us all tasks, including the one whose current or desired state is `Shutdown`
+- `docker service ps worker` gives us all tasks
+  <br/>(including the one whose current or desired state is `Shutdown`)
 
 - Then we filter out the tasks whose current **and** desired state is `Shutdown`
 
-- Future versions will have fancy filters to make that less tinkerish
+- Future versions might have fancy filters to make that less tinkerish
 
 ---
 
@@ -2228,9 +2286,7 @@ Note how the build and push were fast (because caching).
 
 ]
 
-SwarmKit updates all instances at the same time.
-
-If only we could do a rolling upgrade!
+By default, SwarmKit does a rolling upgrade, one instance at a time.
 
 ---
 
@@ -2253,6 +2309,25 @@ If only we could do a rolling upgrade!
   ```
 
 ]
+
+---
+
+## Timeline of an upgrade
+
+- SwarmKit will upgrade N instances at a time
+  <br/>(following the `update-parallelism` parameter)
+
+- New tasks are created, and their desired state is set to `Ready`
+  <br/>.small[(this pulls the image if necessary, ensures resource availability, creates the container ... without starting it)]
+
+- If the new tasks fail to get to `Ready` state, go back to the previous step
+  <br/>.small[(SwarmKit will try again and again, until the situation is addressed or desired state is updated)]
+
+- When the new tasks are `Ready`, it sets the old tasks desired state to `Shutdown`
+
+- When the old tasks are `Shutdown`, it starts the new tasks
+
+- Then it waits for the `update-delay`, and continues with the next batch of instances
 
 ---
 
@@ -2355,19 +2430,18 @@ Error: grpc: failed to unmarshal the received message proto: wrong wireType = 0
 
 - We are going to deploy an ELK stack
 
-- It will accept logs over a syslog socket
+- It will accept logs over a GELF socket
 
-- We will deploy a logspout container on every node
-
-- Logspout will detect containers as they are started, and funnel their logs to logstash
+- We will update our services to send logs through the GELF logging driver
 
 ---
 
 # Setting up ELK to store container logs
 
 *Important foreword: this is not an "official" or "recommended"
-setup; it is just an example. We do not endorse ELK, logspout,
-or the other elements of the stack more than others!*
+setup; it is just an example. We used ELK in this demo because
+it's a popular setup and we keep being asked about it; but you
+will have equal success with Fluent or other logging stacks!*
 
 What we will do:
 
@@ -2375,9 +2449,9 @@ What we will do:
 
 - Gaze at the spiffy Kibana web UI
 
-- Manually send a few log entries over syslog
+- Manually send a few log entries using one-shot containers
 
-- Add logspout to send all container output to ELK
+- Setup our containers to send their logs to Logstash
 
 ---
 
@@ -2440,7 +2514,7 @@ What we will do:
 - Create the Kibana service:
   ```bash
   docker service create --network logging --name kibana --publish 5601:5601 \
-         -e LOGSPOUT=ignore -e ELASTICSEARCH_URL=http://elasticsearch:9200 kibana
+         -e ELASTICSEARCH_URL=http://elasticsearch:9200 kibana
   ```
 
 ]
@@ -2449,7 +2523,7 @@ What we will do:
 
 ## Setting up Logstash
 
-- Logstash needs some configuration to listen to syslog messages and send them to elasticsearch
+- Logstash needs some configuration to listen to GELF messages and send them to ElasticSearch
 
 - We could author a custom image bundling this configuration
 
@@ -2459,9 +2533,8 @@ What we will do:
 
 - Create the Logstash service:
   ```bash
-  docker service create --network logging --name logstash \
-         -e LOGSPOUT=ignore logstash \
-         -e "$(cat ~/orchestration-workshop/elk/logstash.conf)"
+    docker service create --network logging --name logstash -p 12201:12201/udp \
+           logstash -e "$(cat ~/orchestration-workshop/elk/logstash.conf)"
   ```
 
 ]
@@ -2476,7 +2549,7 @@ What we will do:
 
 - Lookup the node running the Logstash container:
   ```bash
-  docker service tasks logstash
+  docker service ps logstash
   ```
 
 - Log into that node:
@@ -2517,25 +2590,45 @@ You should see the heartbeat messages:
 
 ---
 
-## Testing the syslog receiver
+## Testing the GELF receiver
 
-- In a new window, we will generate a syslog message
+- In a new window, we will generate a logging message
 
-- We will use the `logger` standard utility
-
-- We will run it in a service connected to the `logging` network
-
-- We don't want it to be restarted forever, so we will do that in a one-shot container
+- We will use a one-off container, and Docker's GELF logging driver
 
 .exercise[
 
 - Send a test message:
   ```bash
-  docker service create --network logging --restart-condition none debian \
-         logger -n logstash -P 51415 hello world
+    docker run --log-driver gelf --log-opt gelf-address=udp://127.0.0.1:12201 \
+           --rm alpine echo hello
+  ```
+]
+
+The test message should show up in the logstash container logs.
+
+---
+
+## Sending logs from a service
+
+- We were sending from a "classic" container so far; let's send logs from a service instead
+
+- We're lucky: the parameters (`--log-driver` and `--log-opt`) are exactly the same!
+
+- We will use the `--restart-condition` flag so that the container doesn't restart forever
+
+.exercise[
+
+- Send a test message:
+  ```bash
+    docker service create --restart-condition none \
+           --log-driver gelf --log-opt gelf-address=udp://127.0.0.1:12201 \
+           alpine echo hello
   ```
 
 ]
+
+The test message should show up as well in the logstash container logs.
 
 ---
 
@@ -2570,26 +2663,27 @@ You should see the heartbeat messages:
 
 ---
 
-## Setting up Logspout
+## Updating our services to use GELF
 
-- Logspout connects to the Docker control socket
+- We will now inform our Swarm to add GELF logging to all our services
 
-- Using the Docker events API, it automatically detects new containers
+- This is done with the `docker service update` command
 
-- Using the Docker logging API, it streams logs of all containers to its outputs
-
-- We will run a logspout container on each node (using global scheduling), and bind-mount the Docker control socket into the logspout container
+- The logging flags are the same as before
 
 .exercise[
 
-- Create the logspout service:
+- Enable GELF logging for all our *stateless* services:
   ```bash
-    docker service create --network logging --name logspout --mode global \
-      --mount source=/var/run/docker.sock,type=bind,target=/var/run/docker.sock \
-      -e SYSLOG_FORMAT=rfc3164 gliderlabs/logspout syslog://logstash:51415
+    for SERVICE in hasher rng webui worker; do
+      docker service update $SERVICE \
+             --log-driver gelf --log-opt gelf-address=udp://127.0.0.1:12201
+    done
   ```
 
 ]
+
+After ~15 seconds, you should see the log messages in Kibana.
 
 ---
 
@@ -2606,22 +2700,649 @@ You should see the heartbeat messages:
 - In the left column, move the mouse over the following
   columns, and click the "Add" button that appears:
 
-<!--
   - host
   - container_name
   - message
--->
 
+<!--
   - logsource
   - program
   - message
+-->
 
 ]
 
 ---
 
+## .warning[Don't update stateful services!]
 
-## Controlling Docker from a container
+- Why didn't we update the Redis service as well?
+
+- When a service changes, SwarmKit replaces existing container with new ones
+
+- This is fine for stateless services
+
+- But if you update a stateful service, its data will be lost in the process
+
+- If we updated our Redis service, all our DockerCoins would be lost
+
+---
+
+# Dealing with stateful services
+
+- First of all, you need to make sure that the data files are on a *volume*
+
+- Volumes are host directories that are mounted to the container's filesystem
+
+- These host directories can be backed by the ordinary, plain host filesystem ...
+
+- ... Or by distributed/networked filesystems
+
+- In the latter scenario, in case of node failure, the data is safe elsewhere ...
+
+- ... And the container can be restarted on another node without data loss
+
+---
+
+## Building a stateful service experiment
+
+- We will use Redis for this example
+
+- We will expose it on port 10000 to access it easily
+
+.exercise[
+
+- Start the Redis service:
+  ```bash
+  docker service create --name stateful -p 10000:6379 redis
+  ```
+
+- Check that we can connect to it (replace XX.XX.XX.XX with any node's IP address):
+  ```bash
+  docker run --rm redis redis-cli -h `XX.XX.XX.XX` -p 10000 info server
+  ```
+
+]
+
+---
+
+## Accessing our Redis service easily
+
+- Typing that whole command is going to be tedious
+
+.exercise[
+
+- Define a shell alias to make our lives easier:
+  ```bash
+  alias redis='docker run --rm redis redis-cli -h `XX.XX.XX.XX` -p 10000'
+  ```
+
+- Try it:
+  ```bash
+  redis info server
+  ```
+
+]
+
+---
+
+## Basic Redis commands
+
+.exercise[
+
+- Check that the `foo` key doesn't exist:
+  ```bash
+  redis get foo
+  ```
+
+- Set it to `bar`:
+  ```bash
+  redis set foo bar
+  ```
+
+- Check that it exists now:
+  ```bash
+  redis get foo
+  ```
+
+]
+
+---
+
+## Local volumes vs. global volumes
+
+- Global volumes exist in a single namespace
+
+- A global volume can be mounted on any node
+  <br/>.small[(bar some restrictions specific to the volume driver in use; e.g. using an EBS-backed volume on a GCE/EC2 mixed cluster)]
+
+- Attaching a global volume to a container allows to start the container anywhere
+  <br/>(and retain its data wherever you start it!)
+
+- Global volumes require extra *plugins* (Flocker, Portworx...)
+
+- Docker doesn't come with a default global volume driver at this point
+
+- Therefore, we will fall back on *local volumes*
+
+---
+
+## Local volumes
+
+- We will use the default volume driver, `local`
+
+- As the name implies, the `local` volume driver manages *local* volumes
+
+- Since local volumes are (duh!) *local*, we need to pin our container to a specific host
+
+- We will do that with a *constraint*
+
+.exercise[
+
+- Add a placement constraint to our service:
+  ```bash
+  docker service update stateful --constraint-add node.hostname==$HOSTNAME
+  ```
+
+]
+
+---
+
+## Where is our data?
+
+- If we look for our `foo` key, it's gone!
+
+.exercise[
+
+- Check the `foo` key:
+  ```bash
+  redis get foo
+  ```
+
+- Adding a constraint caused the service to be restarted, *even if it didn't have to move*:
+  ```bash
+  docker service ps stateful
+  ```
+
+]
+
+---
+
+## Setting the key again
+
+- Since our database was wiped out, let's populate it again
+
+.exercise[
+
+- Set `foo` again:
+  ```bash
+  redis set foo bar
+  ```
+
+- Check that it's there:
+  ```bash
+  redis get foo
+  ```
+
+]
+
+---
+
+## Making sure that Redis correctly persists data
+
+- Before going further, we need to make sure that Redis correctly saves to disk
+
+.exercise[
+
+- Restart the container:
+  ```bash
+    CID=$(docker ps -q --filter label=com.docker.swarm.service.name=stateful)
+    docker restart $CID
+  ```
+
+- Check the `foo` key:
+  ```bash
+  redis get foo
+  ```
+
+]
+
+--
+
+(╯°□°）╯︵ ┻━┻)
+
+---
+
+## Instructing Redis to save data on restarts
+
+- The default configuration that comes with the `redis` image doesn't save on shutdown
+
+  (See [this issue](https://github.com/docker-library/redis/issues/4) for some hints about what's happening)
+
+- Let's add an extra flag to enable AOF persistence
+
+.exercise[
+
+- Add `--appendonly yes` to Redis starting flags:
+  ```bash
+  docker service update stateful --args "--appendonly yes"
+  ```
+
+]
+
+Note: we can achieve the same result by enabling RDB snapshots instead.
+<br/>
+See http://redis.io/topics/persistence for more details about Redis persistence.
+
+---
+
+## Checking persistence across container restarts
+
+.exercise[
+
+- Set the `foo` key once again:
+  ```bash
+  redis set foo bar
+  ```
+
+- Restart the container:
+  ```bash
+  CID=$(docker ps -q --filter label=com.docker.swarm.service.name=stateful)
+  docker restart $CID
+  ```
+
+- Check that `foo` is still there:
+  ```bash
+  redis get foo
+  ```
+
+]
+
+---
+
+## Service updates cause containers to be replaced
+
+- Let's try to make a trivial update to the service and see what happens
+
+.exercise[
+
+- Check the current list of volumes:
+  ```bash
+  docker volume ls
+  ```
+
+- Set a memory limit to our Redis service:
+  ```bash
+  docker service update stateful --limit-memory 100M
+  ```
+
+]
+
+Note: all changes trigger the creation of a new task, and therefore a replacement of the existing container;
+even when it is not strictly technically necessary.
+
+---
+
+## Services volumes are ephemeral
+
+- What happened to our data?
+
+.exercise[
+
+- The `foo` key is (once again) gone:
+  ```bash
+  redis get foo
+  ```
+
+- The volume has been recycled, too:
+  ```bash
+  docker volume ls
+  ```
+
+]
+
+---
+
+## Assigning a persistent volume to the container
+
+- Let's add an explicit volume mount to our service, referencing a named volume
+
+.exercise[
+
+- Update the service with a volume mount:
+  ```bash
+    docker service update stateful \
+           --mount-add type=volume,source=foobarstore,target=/data
+  ```
+
+- Check the new volume list:
+  ```bash
+  docker volume ls
+  ```
+
+]
+
+Note: the `local` volume driver automatically creates volumes.
+
+---
+
+## Checking that persistence actually works across service updates
+
+.exercise[
+
+- Store something in the `foo` key:
+  ```bash
+  redis set foo barbar
+  ```
+
+- Update the service with another trivial change:
+  ```bash
+  docker service update stateful --limit-memory 200M
+  ```
+
+- Check that `foo` is still set:
+  ```bash
+  redis get foo
+  ```
+
+]
+
+---
+
+## Recap
+
+- The service must commit its state to disk when being shutdown
+
+  (Shutdown = being sent a `TERM` signal)
+
+- The state must be written on files located on a volume
+
+- That volume must be specified to be persistent
+
+- If using a local volume, the service must also be pinned to a specific node
+
+  (And losing that node means losing the data, unless there are other backups)
+
+---
+
+## Cleaning up
+
+.exercise[
+
+- Remove the stateful service:
+  ```bash
+  docker service rm stateful
+  ```
+
+- Remove the associated volume:
+  ```bash
+  docker volume rm foobarstore
+  ```
+
+]
+
+Note: we could keep the volume around if we wanted.
+
+---
+
+# Scripting image building and pushing
+
+- Earlier, we used some rather crude shell loops to build and push images
+
+- Compose (and clever environment variables) can help us to make that easier
+
+- When using Compose file version 2, you can specify *both* `build` and `image`:
+
+```yaml
+version: "2"
+
+services:
+
+  webapp:
+    build: src/
+    image: jpetazzo/webapp:${TAG}
+```
+
+Note: Compose tolerates empty (or unset) environment variables, but in this example,
+`TAG` *must* be set, because `jpetazzo/webapp:` is not a valid image name.
+
+---
+
+## Updating the Compose file to specify image tags
+
+- Let's update the Compose file for DockerCoins to make it easier to push it to our registry
+
+.exercise[
+
+- Go back to the `dockercoins` directory:
+  ```bash
+  cd ~/orchestration-workshop/dockercoins
+  ```
+
+- Edit `docker-compose.yml`, and update each service to add an `image` directive as follows:
+  ```yaml
+    rng:
+      build: rng
+      `image: ${REGISTRY_SLASH}rng${COLON_TAG}`
+  ```
+
+]
+
+You can also directly use the file `docker-compose.yml-images`.
+
+---
+
+## Use the new Compose file
+
+- We need to set `REGISTRY_SLASH` and `COLON_TAG` variables
+
+- Then we can use Compose to `build` and `push`
+
+.exercise[
+
+- Set environment variables:
+  ```bash
+  export REGISTRY_SLASH=localhost:5000/
+  export COLON_TAG=:v0.01
+  ```
+
+- Build and push with Compose:
+  ```bash
+  docker-compose build
+  docker-compose push
+  ```
+
+]
+
+---
+
+## Why the weird variable names?
+
+- It would be more intuitive to have:
+  ```bash
+  REGISTRY=localhost:5000
+  TAG=v0.01
+  ```
+
+- But then, when the variables are not set, the image names would be invalid
+
+  (they would look like .red[`/rng:`])
+
+- Putting the slash and the colon in the variables allows to use the Compose file
+  even when the variables are not set
+
+- The variable names (might) remind you that you have to put the trailing slash and heading colon
+
+---
+
+# Docker Application Bundles
+
+- The previous section showed us how to streamline image build and push
+
+- We will now see how to streamline service creation
+
+  (i.e. get rid of the `for SERVICE in ...; do docker service create ...` part)
+
+.warning[This is experimental and subject to change!]
+
+---
+
+## What is a Docker Application Bundle?
+
+- Conceptually similar to a Compose file, but for Swarm clusters
+
+- A Docker Application Bundle is a JSON payload describing the services
+
+- It's typically stored as `<stackname>.dab`
+
+- It's JSON because you're not supposed to edit it manually
+
+- It can be generated by Compose, and consumed by Docker (experimental branch)
+
+- In addition to image names, it contains their exact SHA256
+
+---
+
+## Generating a DAB
+
+- This is done with the Compose `bundle` command
+
+.exercise[
+
+- Create the DAB for the DockerCoins application:
+  ```bash
+  docker-compose bundle
+  ```
+
+- Inspect the resulting file:
+  ```bash
+  cat dockercoins.dab
+  ```
+
+]
+
+---
+
+## Using a DAB
+
+- This is done with `docker stack deploy <stackname>`
+
+.exercise[
+
+- Try to deploy the DAB:
+  ```bash
+  docker stack deploy dockercoins
+  ```
+
+]
+
+--
+
+Oh, right, we need the *experimental* build of Docker!
+
+---
+
+## Installing Docker experimental CLI
+
+- We don't need to upgrade our Docker Engines; we just need an upgraded CLI
+
+- We will download and extract it in a separate directory (to keep the original intact)
+
+.exercise[
+
+- Download and unpack the latest experimental build of Docker:
+  ```bash
+    curl -sSL \
+      https://experimental.docker.com/builds/$(uname -s)/$(uname -m)/docker-latest.tgz \
+      | tar -C ~ -zxf-
+  ```
+
+]
+
+---
+
+## Using Docker experimental CLI
+
+- Just invoke `~/docker/docker` instead of `docker`
+
+.exercise[
+
+- Deploy our app using the DAB file:
+  ```bash
+    ~/docker/docker stack deploy dockercoins
+  ```
+
+- Check the stack deployment:
+  ```bash
+    ~/docker/docker stack ps dockercoins
+  ```
+
+]
+
+---
+
+## Look at the newly deployed stack
+
+.exercise[
+
+- Let's find out which port was allocated for `webui`:
+  ```bash
+    docker service inspect dockercoins_webui \
+           --format '{{ (index .Endpoint.Ports 0).PublishedPort }}'
+  ```
+
+- Point your navigator to any node on that port
+
+]
+
+Note: we can use the "normal" CLI for everything else.
+
+We only need it for `docker stack`.
+
+---
+
+## Clean up
+
+- Unsurprisingly, there is a `docker stack rm` command
+
+.exercise[
+
+- Clean up the stack we just deployed:
+  ```bash
+  ~/docker/docker stack rm dockercoins
+  ```
+
+]
+
+---
+
+## Scoping
+
+- All resources (service names, network names...) are prefixed with the stack name
+
+- This allows us to stage up multiple instances side by side
+
+  (Just like before with Compose's project name parameter)
+
+---
+
+## Some features are not fully supported yet
+
+- Global scheduling
+
+- Scaling
+
+- Fixed port numbers
+
+- Logging options
+
+- ... and much more
+
+You can specify *most* of them in the DAB itself, but Compose can't generate it (yet).
+
+---
+
+# Controlling Docker from a container
 
 - In a local environment, just bind-mount the Docker control socket:
   ```bash
@@ -2647,20 +3368,445 @@ More resources on this topic:
 
 - In Swarm mode, bind-mounting the control socket gives you access to the whole cluster
 
+- You can tell Docker to place a given service on a manager node, using constraints:
+  ```bash
+    docker service create \
+      --mount source=/var/run/docker.sock,type=bind,target=/var/run/docker.sock \
+      --name autoscaler --constraint node.role==manager ...
+  ```
 
 ---
 
-#  Last words
+# Node management
+
+- SwarmKit allows to change (almost?) everything on-the-fly
+
+- Nothing should require a global restart
+
+---
+
+## Node availability
+
+```bash
+docker node update <node-name> --availability <active|pause|drain>
+```
+
+- Active = schedule tasks on this node (default)
+
+- Pause = don't schedule new tasks on this node; existing tasks are not affected
+
+  You can use it to troubleshoot a node without disrupting existing tasks
+
+  It can also be used (in conjunction with labels) to reserve resources 
+
+- Drain = don't schedule new tasks on this node; existing tasks are moved away
+
+  This is just like crashing the node, but containers get a chance to shutdown cleanly
+
+---
+
+## Managers and workers
+
+- Nodes can be promoted to manager with `docker node promote`
+
+- Nodes can be demoted to worker with `docker node demote`
+
+- This can also be done with `docker node update <node> --role <manager|worker>`
+
+- Reminder: this has to be done from a manager node
+  <br/>(workers cannot promote themselves)
+
+---
+
+## Removing nodes
 
 - You can leave Swarm mode with `docker swarm leave`
 
-- `docker inspect` is being extended to support services, tasks...
+- Nodes are drained before being removed (i.e. all tasks are rescheduled somewhere else)
 
-- `docker node update XXX --availability <active|pause|drain>`
+- Managers cannot leave (they have to be demoted first)
 
-- Healthchecks
+- After leaving, a node still shows up in `docker node ls` (in `Down` state)
 
-- Bundles
+- When a node is `Down`, you can remove it with `docker node rm` (from a manager node)
+
+---
+
+## Join tokens and automation
+
+- If you have used Docker 1.12-RC: join tokens are now mandatory!
+
+- You cannot specify your own token (SwarmKit generates it)
+
+- If you need to change the token: `docker swarm join-token --rotate ...`
+
+- To automate cluster deployment:
+
+  - have a seed node do `docker swarm init` if it's not already in Swarm mode
+
+  - propagate the token to the other nodes (secure bucket, facter, ohai...)
+
+---
+
+---
+
+class: title
+
+# Metrics
+
+---
+
+## What are metrics?
+
+TODO
+
+---
+
+## Which metrics will we collect?
+
+- node metrics (e.g. cpu, ram, disk space)
+
+- container metrics (e.g. memory used, processes, network traffic going in and out)
+
+- application metrics (e.g. TODO)
+
+---
+
+## Tools
+
+We will use three open source Go projects for metric collection, publishing, storing, and visualization:
+
+- Intel Snap: telemetry framework to collect, process, and publish metric data
+
+- InfluxDB: database
+
+- Grafana: graph visuals
+
+---
+
+## Snap 
+
+- [www.github.com/intelsdi-x/snap](www.github.com/intelsdi-x/snap)
+
+- Can collect, process, and publish metric data
+
+- Doesn’t store metrics
+
+- Works as a daemon
+
+- Offloads collecting, processing, and publishing to plugins
+
+- Have to configure it to use the plugins and collect the metrics you want
+
+---
+
+## InfluxDB
+
+- Since Snap doesn't have have a database, we need one
+
+- It's specifically for time series
+
+---
+
+## Grafana
+
+- Since neither Snap or InfluxDB can show graphs, we're using Grafana
+
+---
+
+## Getting Snap
+
+.exercise[
+
+- Export snap version to environment variable
+  ```bash
+  export SNAPVER=v0.14.0-beta
+  ```
+
+- Get Snap:
+  ```bash
+  docker run -v /opt:/opt centos sh -c "curl -sSL https://github.com/intelsdi-x/snap/releases/download/$SNAPVER/snap-$SNAPVER-linux-amd64.tar.gz | tar -C /opt -zxf-"
+  ```
+- Get plugins:
+  ```bash
+  docker run -v /opt:/opt centos sh -c "curl -sSL https://github.com/intelsdi-x/snap/releases/download/$SNAPVER/snap-plugins-$SNAPVER-linux-amd64.tar.gz | tar -C /opt -zxf-"
+  ```    
+
+]
+
+---
+
+## Setting up your Snap environment
+
+# TODO figure out whether this should use sudo
+
+.exercise[
+
+- Create a symlink for Snap
+  ```bash
+  ln -s /opt/snap-$SNAPVER/ /opt/snap
+  ln -s /opt/snap/bin/snapd /usr/local/bin/snapd
+  ln -s /opt/snap/bin/snapctl /usr/local/bin/snapctl
+  ```
+
+  ]
+
+---
+
+## `snapd`- Snap daemon
+
+- Application made up of a REST API, control module, and scheduler module
+
+.exercise[
+
+- Start `snapd` with plugin trust disabled and log level set to debug
+  ```bash
+  snapd -t 0 -l 1
+  ```
+
+]
+
+---
+
+## `snapctl` - loading plugins
+
+.exercise[
+
+- Load the psutil collector plugin
+  ```bash
+  snapctl plugin load /opt/snap/plugin/snap-plugin-collector-psutil
+  ```
+
+- Load the file publisher plugin
+  ```bash
+  snapctl plugin load /opt/snap/plugin/snap-plugin-publisher-file
+  ```
+
+]
+
+---
+
+## `snapctl` - see what you loaded and can collect
+
+.exercise[
+
+- See your loaded plugins
+  ```bash
+  snapctl plugin list
+  ```
+
+- See the metrics you can collect
+  ```bash
+  snapctl metric list
+  ```
+
+]
+
+---
+
+## `snapctl` - starting a task
+
+.exercise[
+
+- Using the task manifest in the snap directory, start a task to collect metrics from psutil and publish them to a file.
+
+  ```bash
+  cd ~/orchestration-workshop/snap
+  snapd task create -t psutil-file.yml
+  ```
+
+  ]
+
+  The output should look like the following:
+  ```
+    Using task manifest to create task
+    Task created
+    ID: 240435e8-a250-4782-80d0-6fff541facba
+    Name: Task-240435e8-a250-4782-80d0-6fff541facba
+    State: Running
+  ```
+
+---
+
+## `snapctl` - see the tasks
+
+.exercise[
+
+- Using the task in the snap directory start a task to collect metrics from psutil and publish them to a file.
+
+  ```bash
+    snapctl task list
+  ```
+
+]
+
+The output should look like the following:
+  ```
+    ID           NAME              STATE     HIT MISS FAIL CREATED  LAST FAILURE
+    24043...acba Task-24043...acba Running   4   0    0    2:34PM   8-13-2016
+  ```
+---
+
+## Check file
+
+.exercise[
+
+  ```bash
+    tail -f /tmp/snap-psutil-file.log
+  ```
+
+]
+
+To exit, use ctrl-c
+
+---
+
+## `snapctl` - watch metrics
+
+.exercise[
+
+  ```bash
+    snapctl task watch <ID>
+  ```
+
+]
+
+To exit, use ctrl-c
+
+---
+
+## `snapctl` - stop the task
+
+.exercise[
+
+- Using the ID name, stop the task
+
+  ```bash
+  snapctl task stop <ID>
+  ```
+
+]
+
+---
+
+## Snap Tribe Mode
+
+- TODO: What is tribe?
+
+
+---
+
+## Start `snapd` with Tribe Mode enabled
+
+.exercise[
+
+
+  ```bash
+  snapd --tribe -t 0 -l 1
+  ```
+]
+
+---
+
+## Create first Tribe agreement
+
+.exercise[
+
+  ```
+  snapctl agreement create all-nodes
+  ```
+
+]
+
+The output should look like the following:
+
+```
+  Name             Number of Members       plugins      tasks
+  all-nodes        0                       0            0
+```
+
+---
+
+## Join running snapd to agreement
+
+.exercise[
+
+  ```bash
+  snapctl agreement join all-nodes $HOSTNAME
+  ```
+]
+
+The output should look like the following:
+```
+  Name             Number of Members       plugins         tasks      
+  all-nodes        1                       0               0
+```
+
+---
+
+## Start InfluxDB and Grafana containers and start task for collecting Docker metrics
+
+- Run the following on node 1
+
+- It starts up containers with InfluxDB and Grafana using docker-compose, loads the Docker collector and InfluxDB publisher, and starts the task.
+
+.exercise[
+
+  ```bash
+  ./run-docker-influxdb-grafana.sh
+  ```
+]
+
+- At the end it should have the InfluxDB and Grafana Dashboard URLs e.g.
+
+  ```
+    "Grafana Dashboard => http://${host_ip}:3000/dashboard/db/snap-dashboard"
+    "Influxdb UI       => http://${host_ip}:8083"
+  ```
+
+---
+
+## See metrics in InfluxDB
+
+- Go to `http://<NODE1_IP>:8083`
+
+- Switch to the snap database on the top right
+
+- To see what metrics you're able to collect from (these should match `snapctl metric list`) use the `SHOW MEASUREMENTS` query
+
+- To see more information from one of the metrics use something like the following with one of the metrics between the quotes:
+
+```
+  SELECT * FROM "intel/linux/docker/025fd8c5dc0c/cpu_stats/cpu_usage/total_usage"
+```
+
+---
+
+## See graphs in Grafana
+
+
+
+---
+
+## Add more nodes to the Tribe
+
+.exercise[
+
+  - Run the following on all four other nodes. Replace NODE1_IP with the public IP address of the first node. You can get it by running `curl  canihazip.com/s` on node one if it isn't visible.
+
+  - This will load the plugins from node 1 on the other nodes and start the same task
+
+  ```bash
+    snapd --tribe -t 0 -l 1 --tribe-node-name ip-172-31-1-163 --tribe-seed <NODE1_IP>:6000
+  ```
+
+]
+
+---
+
+## InfluxDB and Grafana updates
+
+- Now if you look at InfluxDB you should see metrics from the other nodes and can add these to your Grafana dashboard
 
 ---
 
